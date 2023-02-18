@@ -6,28 +6,21 @@ fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        println!("Please enter a command"); // maybe output the help message here
+        print_help();
         return Ok(());
     }
 
-    let command = &args[1];
+    let command = match args.get(1) {
+        Some(command) => command,
+        None => {
+            print_help();
+            return Ok(());
+        }
+    };
     if command == "help" {
-        let help_message = "usage: reader <command> [options]
-
-list of available commands: 
-add <book>          Add a book to the list
-remove <book>       Remove a book from the list
-list                List all books in the list
-help                Show this help message
-
-examples:
-reader add \"The Lord of the Rings\"
-reader remove \"The Lord of the Rings\"
-reader list
-";
-        println!("{}", help_message);
+        print_help();
     } else if command == "add" {
-        let _book = match args.get(2) {
+        let book = match args.get(2) {
             Some(book) => book,
             None => {
                 println!("Please enter a book name");
@@ -42,14 +35,29 @@ reader list
             .create(true)
             .open(file_name)?;
 
-        file.write_all(b"Hello, world!")?;
-        println!("Add message");
+        file.write_all(book.as_bytes())?;
+        file.write_all(b"\n")?;
     } else if command == "remove" {
-        println!("Remove message");
     } else if command == "list" {
-        println!("List message");
     } else {
         println!("Invalid command");
     }
     Ok(())
+}
+
+fn print_help() {
+    let help_message = "usage: reader <command> [options]
+
+list of available commands: 
+add <book>          Add a book to the list
+remove <book>       Remove a book from the list
+list                List all books in the list
+help                Show this help message
+
+examples:
+reader add \"The Lord of the Rings\"
+reader remove \"The Lord of the Rings\"
+reader list
+";
+    println!("{}", help_message);
 }

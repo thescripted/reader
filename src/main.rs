@@ -1,8 +1,14 @@
+use rusqlite::Connection;
 use std::env;
-use std::fs::OpenOptions;
-use std::io::prelude::*;
+use std::error::Error;
 
-fn main() -> std::io::Result<()> {
+#[derive(Debug)]
+struct Book {
+    title: String,
+}
+
+// not sure what Box<dyn Error> is, but I will find out later
+fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -20,6 +26,13 @@ fn main() -> std::io::Result<()> {
     if command == "help" {
         print_help();
     } else if command == "add" {
+        let conn = match Connection::open_in_memory() {
+            Ok(conn) => conn,
+            Err(e) => {
+                println!("Error: {}", e);
+                return Ok(());
+            }
+        };
         let book = match args.get(2) {
             Some(book) => book,
             None => {
@@ -28,15 +41,14 @@ fn main() -> std::io::Result<()> {
             }
         };
 
-        let file_name = "book.txt";
-        let mut file = OpenOptions::new()
-            .read(true)
-            .append(true)
-            .create(true)
-            .open(file_name)?;
+        match conn.execute(
+            "INSERT INTO book (title) VALUES (?1)",
+            [&book.to_string()],
+        ) {
+            Ok(_) => println!("book added"),
+            Err(e) => println!("Error: {}", e),
+        };
 
-        file.write_all(book.as_bytes())?;
-        file.write_all(b"\n")?;
     } else if command == "remove" {
     } else if command == "list" {
     } else {

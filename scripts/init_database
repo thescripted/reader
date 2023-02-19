@@ -1,0 +1,1 @@
+cat ./scripts/genesis.sql | sqlite3 books.db

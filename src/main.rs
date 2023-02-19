@@ -1,6 +1,7 @@
 use rusqlite::Connection;
 use std::env;
 use std::error::Error;
+use std::io::BufRead;
 
 #[derive(Debug)]
 struct Book {
@@ -65,7 +66,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         match conn.execute("DELETE FROM books WHERE title = ?", [&book.to_string()]) {
-            Ok(_) => println!("book removed"),
+            Ok(n) => {
+                if n == 0 {
+                    println!("Book not found");
+                } else {
+                    println!("Book removed");
+                }
+            }
             Err(e) => println!("Error: {}", e),
         };
     } else if command == "list" {
@@ -110,6 +117,49 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
             println!("{}. {}", i + 1, title);
         });
+    } else if command == "test" {
+        // let conn = match Connection::open(DATABASE_PATH) {
+        //     Ok(conn) => conn,
+        //     Err(e) => {
+        //         println!("Error: {}", e);
+        //         return Ok(());
+        //     }
+        // };
+
+        // println!("Which book would you like to read?\n");
+        // let mut stmt = conn.prepare("SELECT title FROM books")?;
+        // let book_iter = stmt.query_map([], |row| Ok(Book { title: row.get(0)? }))?;
+        // book_iter.enumerate().for_each(|(i, book)| {
+        //     let title = match book {
+        //         Ok(book) => book.title,
+        //         Err(e) => {
+        //             println!("Error: {}", e);
+        //             return;
+        //         }
+        //     };
+        //     println!("{}. {}", i + 1, title);
+        // });
+
+        let fd = libc::STDIN_FILENO;
+        let mut buf = [0u8; 1];
+        let _value = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 1) };
+
+        let _rv = match buf[0] as char {
+            'q' => {
+                println!("Quitting");
+                return Ok(());
+            }
+            'h' => {
+                println!("Help");
+                return Ok(());
+            }
+            _ => {
+                println!("Invalid command");
+                return Ok(());
+            }
+        };
+    } else if command == "untest" {
+        print!("\x1b[?25h");
     } else {
         println!("Invalid command");
     }

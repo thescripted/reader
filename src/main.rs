@@ -89,6 +89,27 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
             println!("{}", title);
         });
+    } else if command == "status" {
+        let conn = match Connection::open(DATABASE_PATH) {
+            Ok(conn) => conn,
+            Err(e) => {
+                println!("Error: {}", e);
+                return Ok(());
+            }
+        };
+
+        let mut stmt = conn.prepare("SELECT title FROM books")?;
+        let book_iter = stmt.query_map([], |row| Ok(Book { title: row.get(0)? }))?;
+        book_iter.enumerate().for_each(|(i, book)| {
+            let title = match book {
+                Ok(book) => book.title,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    return;
+                }
+            };
+            println!("{}. {}", i + 1, title);
+        });
     } else {
         println!("Invalid command");
     }

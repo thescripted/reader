@@ -7,6 +7,8 @@ struct Book {
     title: String,
 }
 
+const DATABASE_PATH: &'static str = "books.db";
+
 // not sure what Box<dyn Error> is, but I will find out later
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
@@ -26,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if command == "help" {
         print_help();
     } else if command == "add" {
-        let conn = match Connection::open_in_memory() {
+        let conn = match Connection::open(DATABASE_PATH) {
             Ok(conn) => conn,
             Err(e) => {
                 println!("Error: {}", e);
@@ -41,16 +43,52 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         };
 
-        match conn.execute(
-            "INSERT INTO book (title) VALUES (?1)",
-            [&book.to_string()],
-        ) {
+        // TODO(ben): for SQL queries, singular book or plural books?
+        match conn.execute("INSERT INTO books (title) VALUES (?)", [&book.to_string()]) {
             Ok(_) => println!("book added"),
             Err(e) => println!("Error: {}", e),
         };
-
     } else if command == "remove" {
+        let conn = match Connection::open(DATABASE_PATH) {
+            Ok(conn) => conn,
+            Err(e) => {
+                println!("Error: {}", e);
+                return Ok(());
+            }
+        };
+        let book = match args.get(2) {
+            Some(book) => book,
+            None => {
+                println!("Please enter a book name");
+                return Ok(());
+            }
+        };
+
+        match conn.execute("DELETE FROM books WHERE title = ?", [&book.to_string()]) {
+            Ok(_) => println!("book removed"),
+            Err(e) => println!("Error: {}", e),
+        };
     } else if command == "list" {
+        let conn = match Connection::open(DATABASE_PATH) {
+            Ok(conn) => conn,
+            Err(e) => {
+                println!("Error: {}", e);
+                return Ok(());
+            }
+        };
+
+        let mut stmt = conn.prepare("SELECT title FROM books")?;
+        let book_iter = stmt.query_map([], |row| Ok(Book { title: row.get(0)? }))?;
+        book_iter.for_each(|book| {
+            let title = match book {
+                Ok(book) => book.title,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    return;
+                }
+            };
+            println!("{}", title);
+        });
     } else {
         println!("Invalid command");
     }

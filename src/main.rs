@@ -140,24 +140,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         //     println!("{}. {}", i + 1, title);
         // });
 
+        // TL;DR, we are going to need to read multiple bytes from stdin to figure out which key
+        // is pressed. This will help us capture things like "Up Arrow" or "Down Arrow." We can't
+        // do this with the std::io::stdin() function, so we will need to use the libc. Or can we?
         let fd = libc::STDIN_FILENO;
-        let mut buf = [0u8; 1];
-        let _value = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 1) };
+        let mut buf = [0u8; 3];
 
-        let _rv = match buf[0] as char {
-            'q' => {
-                println!("Quitting");
-                return Ok(());
-            }
-            'h' => {
-                println!("Help");
-                return Ok(());
-            }
-            _ => {
-                println!("Invalid command");
-                return Ok(());
-            }
-        };
+        let _value = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 3) };
+        println!("Character you input: {:?}", buf);
     } else if command == "untest" {
         print!("\x1b[?25h");
     } else {
